@@ -19,7 +19,7 @@ def test_threat_scorer():
     finding = ThreatFinding(
         agent_id="test_agent",
         agent_type=AgentType.SCANNER,
-        finding_type=FindingType.SIGNATURE,
+        finding_type=FindingType.FILE_SIGNATURE,
         threat_name="Test.Threat",
         threat_level=ThreatLevel.HIGH,
         confidence=0.9,

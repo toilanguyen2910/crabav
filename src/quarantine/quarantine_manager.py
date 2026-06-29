@@ -110,27 +110,60 @@ class QuarantineManager:
             logger.error(f"Failed to quarantine file: {e}")
             return None
     
-    def restore_file(self, quarantine_id: str) -> bool:
+    def restore_file(self, quarantine_id: str, original_path: Optional[str] = None) -> bool:
         """
         Restore file from quarantine
         
         Args:
             quarantine_id: Quarantine record ID
+            original_path: Optional original path (if not provided, queries DB)
         
         Returns:
             True if successful
         """
         try:
             quarantine_path = self.quarantine_dir / f"{quarantine_id}.quar"
+            backup_path = self.backup_dir / f"{quarantine_id}.bak"
             
-            if not quarantine_path.exists():
-                logger.error(f"Quarantined file not found: {quarantine_id}")
+            source_path = quarantine_path if quarantine_path.exists() else backup_path
+            
+            if not source_path.exists():
+                logger.error(f"Quarantined/backup file not found: {quarantine_id}")
                 return False
             
-            # For now, just remove quarantine flag by moving back
-            # In production, would use backup to restore
+            if not original_path:
+                db_path = Path("./data/crabav.db")
+                if db_path.exists():
+                    try:
+                        import sqlite3
+                        conn = sqlite3.connect(str(db_path))
+                        cursor = conn.cursor()
+                        cursor.execute(
+                            "SELECT original_path FROM quarantine_records WHERE quarantine_id = ?",
+                            (quarantine_id,)
+                        )
+                        row = cursor.fetchone()
+                        if row:
+                            original_path = row[0]
+                        conn.close()
+                    except Exception as e:
+                        logger.error(f"Failed to query database for original path: {e}")
             
-            logger.info(f"Restored from quarantine: {quarantine_id}")
+            if not original_path:
+                logger.error(f"Original path not found for: {quarantine_id}")
+                return False
+                
+            dest_path = Path(original_path)
+            dest_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            shutil.copy2(source_path, dest_path)
+            
+            if quarantine_path.exists():
+                quarantine_path.unlink()
+            if backup_path.exists():
+                backup_path.unlink()
+                
+            logger.info(f"Restored from quarantine: {quarantine_id} to {original_path}")
             return True
             
         except Exception as e:

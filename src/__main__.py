@@ -160,13 +160,17 @@ class CrabAVApp:
             )
             
             if threat_report:
+                from .enums import ThreatLevel
+                tl = threat_report.threat_level
+                tl_name = tl.name if hasattr(tl, 'name') else ThreatLevel(tl).name
+                
                 # Generate approval request
                 approval_req = self.approval_handler.generate_request(
                     threat_id=threat_report.threat_id,
                     threat_name=threat_report.threat_name,
                     file_path=threat_report.file_path,
                     risk_score=threat_report.risk_score,
-                    threat_level=threat_report.threat_level.name,
+                    threat_level=tl_name,
                     recommended_actions=threat_report.recommended_actions,
                     source_agent="orchestrator"
                 )

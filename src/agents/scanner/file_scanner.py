@@ -7,10 +7,10 @@ from pathlib import Path
 import subprocess
 from datetime import datetime
 
-from ..enums import AgentType, FindingType, ThreatLevel, ActionType
-from ..models import ThreatFinding, AgentResult
-from ..utils import get_logger, calculate_file_hash, format_bytes
-from .base_agent import ScannerAgent, AgentConfig
+from ...enums import AgentType, FindingType, ThreatLevel, ActionType
+from ...models import ThreatFinding, AgentResult
+from ...utils import get_logger, calculate_file_hash, format_bytes
+from ..base_agent import ScannerAgent, AgentConfig
 
 logger = get_logger("file_scanner")
 

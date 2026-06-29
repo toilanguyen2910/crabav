@@ -8,8 +8,8 @@ from dataclasses import dataclass
 from datetime import datetime
 import asyncio
 
-from .enums import AgentType, ThreatLevel, Status
-from .models import ThreatFinding, AgentResult
+from ..enums import AgentType, ThreatLevel, Status, AgentStatus
+from ..models import ThreatFinding, AgentResult
 
 
 @dataclass
@@ -34,7 +34,7 @@ class BaseAgent(ABC):
         self.agent_id = agent_id
         self.agent_type = agent_type
         self.config = config
-        self.status = Status.IDLE
+        self.status = AgentStatus.IDLE
         self.last_run: Optional[datetime] = None
         self.last_result: Optional[AgentResult] = None
         self.is_running = False
@@ -46,12 +46,12 @@ class BaseAgent(ABC):
     
     async def initialize(self) -> bool:
         """Initialize agent resources. Override if needed."""
-        self.status = Status.IDLE
+        self.status = AgentStatus.IDLE
         return True
     
     async def shutdown(self) -> bool:
         """Cleanup agent resources. Override if needed."""
-        self.status = Status.STOPPED
+        self.status = AgentStatus.STOPPED
         self.is_running = False
         return True
     

@@ -4,7 +4,7 @@ Data models for CrabAV
 
 from typing import List, Dict, Any, Optional
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from .enums import AgentType, ThreatLevel, FindingType, ActionType, Status
 
 
@@ -21,8 +21,7 @@ class ThreatFinding(BaseModel):
     recommended_actions: List[ActionType] = Field(default_factory=list)
     metadata: Dict[str, Any] = Field(default_factory=dict)
     
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
 
 
 class AgentResult(BaseModel):
@@ -36,8 +35,7 @@ class AgentResult(BaseModel):
     duration_seconds: float = 0.0
     timestamp: datetime = Field(default_factory=datetime.now)
     
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
 
 
 class ScanResult(BaseModel):
@@ -55,8 +53,7 @@ class ScanResult(BaseModel):
     duration_seconds: float = 0.0
     errors: List[str] = Field(default_factory=list)
     
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
 
 
 class ThreatReport(BaseModel):
@@ -70,11 +67,11 @@ class ThreatReport(BaseModel):
     file_hash: Optional[str] = None
     findings: List[ThreatFinding] = Field(default_factory=list)
     recommended_actions: List[ActionType] = Field(default_factory=list)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=datetime.now)
     status: Status = Status.PENDING
     
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
 
 
 class QuarantineRecord(BaseModel):
@@ -91,8 +88,7 @@ class QuarantineRecord(BaseModel):
     quarantined_at: datetime = Field(default_factory=datetime.now)
     auto_delete_at: Optional[datetime] = None
     
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
 
 
 class WhitelistEntry(BaseModel):
@@ -104,8 +100,7 @@ class WhitelistEntry(BaseModel):
     whitelisted_at: datetime = Field(default_factory=datetime.now)
     expires_at: Optional[datetime] = None
     
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
 
 
 class ApprovalRequest(BaseModel):
@@ -119,5 +114,4 @@ class ApprovalRequest(BaseModel):
     approved_action: Optional[ActionType] = None
     user_notes: Optional[str] = None
     
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)

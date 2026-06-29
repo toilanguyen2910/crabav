@@ -106,7 +106,48 @@ ipcMain.handle('get-scan-status', async (event, scanId) => {
   return { status: 'running', progress: 45 };
 });
 
+ipcMain.handle('stop-scan', async (event, scanId) => {
+  return { success: true };
+});
+
 ipcMain.handle('approve-action', async (event, threatId, action) => {
   // Send approval to backend
+  return { success: true };
+});
+
+ipcMain.handle('get-threats', async () => {
+  return [];
+});
+
+ipcMain.handle('get-threat-detail', async (event, threatId) => {
+  return null;
+});
+
+ipcMain.handle('get-system-status', async () => {
+  return { status: 'protected', message: 'All systems operational' };
+});
+
+ipcMain.handle('get-agent-status', async () => {
+  return [
+    { name: 'File Scanner', status: 'active' },
+    { name: 'Registry Scanner', status: 'active' },
+    { name: 'Memory Scanner', status: 'active' },
+    { name: 'File Monitor', status: 'active' },
+    { name: 'Process Monitor', status: 'active' }
+  ];
+});
+
+ipcMain.handle('get-settings', async () => {
+  return {
+    realTimeScan: true,
+    autoUpdate: true,
+    emailNotifications: false,
+    quietHours: false,
+    excludeDownloads: false,
+    backupBeforeDelete: true
+  };
+});
+
+ipcMain.handle('update-settings', async (event, settings) => {
   return { success: true };
 });

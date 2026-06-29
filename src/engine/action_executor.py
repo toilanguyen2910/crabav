@@ -215,7 +215,8 @@ class ActionExecutor:
                 'details': {'error': 'Quarantine ID not found'}
             }
         
-        success = self.quarantine.restore_file(quarantine_id)
+        original_path = threat_report.metadata.get('original_path')
+        success = self.quarantine.restore_file(quarantine_id, original_path)
         
         if success:
             logger.info(f"Restored from quarantine: {quarantine_id}")

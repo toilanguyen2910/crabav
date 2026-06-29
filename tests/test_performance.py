@@ -21,7 +21,7 @@ def test_threat_scorer_performance():
         ThreatFinding(
             agent_id=f"agent_{i}",
             agent_type=AgentType.SCANNER,
-            finding_type=FindingType.SIGNATURE,
+            finding_type=FindingType.FILE_SIGNATURE,
             threat_name="Test.Threat",
             threat_level=ThreatLevel.HIGH if i % 2 else ThreatLevel.MEDIUM,
             confidence=0.8 + (i % 20) * 0.01,

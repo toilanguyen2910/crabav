@@ -6,7 +6,7 @@ from typing import List, Dict, Any, Optional
 from pathlib import Path
 import yaml
 from pydantic import BaseModel, Field
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class AgentConfig(BaseModel):
@@ -106,10 +106,15 @@ class Config(BaseSettings):
     quarantine: QuarantineConfig = Field(default_factory=QuarantineConfig)
     database: DatabaseConfig = Field(default_factory=DatabaseConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
+    updates: Dict[str, Any] = Field(default_factory=dict)
+    ui: Dict[str, Any] = Field(default_factory=dict)
+    performance: Dict[str, Any] = Field(default_factory=dict)
     
-    class Config:
-        env_prefix = "CRABAV_"
-        env_nested_delimiter = "__"
+    model_config = SettingsConfigDict(
+        env_prefix="CRABAV_",
+        env_nested_delimiter="__",
+        extra="ignore"
+    )
 
 
 def load_config(config_path: Optional[str] = None) -> Config:

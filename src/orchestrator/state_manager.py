@@ -132,7 +132,7 @@ class StateManager:
                     scan_result.scan_id,
                     scan_result.scan_type,
                     scan_result.target,
-                    scan_result.status.value,
+                    scan_result.status.value if hasattr(scan_result.status, 'value') else scan_result.status,
                     scan_result.files_scanned,
                     scan_result.threats_found,
                     json.dumps(scan_result.agents_used),
@@ -203,12 +203,12 @@ class StateManager:
                 """, (
                     threat_report.threat_id,
                     threat_report.threat_name,
-                    threat_report.threat_level.value,
+                    threat_report.threat_level.value if hasattr(threat_report.threat_level, 'value') else threat_report.threat_level,
                     threat_report.risk_score,
                     threat_report.file_path,
                     threat_report.file_size,
                     threat_report.file_hash,
-                    threat_report.status.value,
+                    threat_report.status.value if hasattr(threat_report.status, 'value') else threat_report.status,
                     threat_report.model_dump_json()
                 ))
                 

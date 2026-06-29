@@ -108,7 +108,7 @@ class ThreatScorer:
         if not findings:
             return 1.0
         
-        max_severity = max(f.threat_level.value for f in findings)
+        max_severity = max((f.threat_level.value if hasattr(f.threat_level, 'value') else f.threat_level) for f in findings)
         
         multipliers = {
             1: 1.0,   # LOW
@@ -311,15 +311,19 @@ class DecisionEngine:
     
     def get_decision_summary(self, report: ThreatReport) -> Dict[str, Any]:
         """Get summary of decision for logging/reporting"""
+        tl = report.threat_level
+        tl_enum = tl if isinstance(tl, ThreatLevel) else ThreatLevel(tl)
+        
+        actions = report.recommended_actions
+        action_values = [a.value if hasattr(a, 'value') else a for a in actions]
+        
         return {
             'threat_id': report.threat_id,
             'threat_name': report.threat_name,
             'risk_score': report.risk_score,
-            'threat_level': report.threat_level.name,
-            'recommended_actions': [a.value for a in report.recommended_actions],
-            'requires_confirmation': self.recommender.requires_confirmation(
-                report.threat_level
-            ),
+            'threat_level': tl_enum.name,
+            'recommended_actions': action_values,
+            'requires_confirmation': self.recommender.requires_confirmation(tl_enum),
             'agents_detected': len(set(f.agent_id for f in report.findings)),
             'total_findings': len(report.findings)
         }
