@@ -317,11 +317,9 @@ Apache License 2.0 - See [LICENSE](LICENSE)
 
 CrabAV is beta software for educational purposes. While it implements real antivirus techniques, it should not be your only line of defense. Use alongside other security measures.
 
-## 📧 Support
+## 📧 Contact
 
-- Issues: [GitHub Issues](https://github.com/toilanguyen2910/crabav/issues)
-- Discussions: [GitHub Discussions](https://github.com/toilanguyen2910/crabav/discussions)
-- Email: jack.vhknguyen@gmail.com
+Email: jack.vhknguyen@gmail.com
 
 ---
 
