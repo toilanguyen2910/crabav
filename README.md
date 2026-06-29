@@ -78,7 +78,7 @@ CrabAV is a free, open-source antivirus system powered by specialized AI agents.
 #### 1. Clone Repository
 
 ```bash
-git clone https://github.com/yourusername/crabav.git
+git clone https://github.com/toilanguyen2910/crabav.git
 cd crabav
 ```
 
@@ -319,10 +319,10 @@ CrabAV is beta software for educational purposes. While it implements real antiv
 
 ## 📧 Support
 
-- Issues: [GitHub Issues](https://github.com/yourusername/crabav/issues)
-- Discussions: [GitHub Discussions](https://github.com/yourusername/crabav/discussions)
-- Email: support@crabav.local
+- Issues: [GitHub Issues](https://github.com/toilanguyen2910/crabav/issues)
+- Discussions: [GitHub Discussions](https://github.com/toilanguyen2910/crabav/discussions)
+- Email: jack.vhknguyen@gmail.com
 
 ---
 
-**Made with 🦀 by Súp Cua AI**
+**Made with 🦀 by Jack Nguyen**
