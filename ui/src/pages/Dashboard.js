@@ -10,7 +10,7 @@ import {
 } from '@mui/material';
 import {
   Security as SecurityIcon,
-  Scan as ScanIcon,
+  DocumentScanner as ScanIcon,
   ListAlt as ListIcon,
   CheckCircle as CheckIcon,
 } from '@mui/icons-material';
