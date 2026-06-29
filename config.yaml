@@ -1,0 +1,115 @@
+application:
+  name: CrabAV
+  version: 0.1.0
+  environment: development
+
+scanning:
+  real_time: true
+  scan_on_access: false  # Disabled by default - requires driver
+  max_file_size_mb: 100
+  timeout_seconds: 60
+  
+  exclude_paths:
+    - C:\Windows\WinSxS
+    - C:\$Recycle.Bin
+    - C:\Windows\System32\DriverStore
+  
+  exclude_extensions:
+    - .tmp
+    - .log
+    - .bak
+
+agents:
+  file_scanner:
+    enabled: true
+    use_clamav: true
+    use_yara: true
+    scan_archives: true
+    max_recursion_depth: 3
+  
+  registry_scanner:
+    enabled: true
+    monitor_startup: true
+    monitor_services: true
+    monitor_browser: true
+  
+  memory_scanner:
+    enabled: true
+    check_process_signatures: true
+    detect_injection: true
+  
+  file_monitor:
+    enabled: true
+    watch_downloads: true
+    watch_documents: true
+    watch_system: false
+  
+  process_monitor:
+    enabled: true
+    detect_parent_anomalies: true
+    detect_suspicious_paths: true
+
+orchestrator:
+  max_parallel_agents: 5
+  agent_timeout_seconds: 30
+  result_aggregation_timeout: 10
+
+decision:
+  min_confidence_threshold: 0.5
+  min_agents_for_high_risk: 2
+  auto_quarantine_critical: false  # Always ask user
+  
+  threat_level_thresholds:
+    low: 30
+    medium: 50
+    high: 70
+    critical: 85
+
+quarantine:
+  enabled: true
+  storage_path: ./data/quarantine
+  backup_path: ./data/backups
+  max_size_mb: 1024
+  encryption: true
+  auto_delete_days: 30
+  create_restore_point: true
+
+database:
+  path: ./data/crabav.db
+  echo: false
+  pool_size: 5
+
+logging:
+  level: INFO
+  format: "[{time:YYYY-MM-DD HH:mm:ss}] {level} | {message}"
+  rotation: "10 MB"
+  retention: "30 days"
+  
+  outputs:
+    - type: file
+      path: ./logs/crabav.log
+    - type: console
+      colorize: true
+
+updates:
+  auto_update_signatures: true
+  signature_update_interval_hours: 6
+  check_app_updates: true
+  
+  sources:
+    clamav_official: true
+    yara_forge: true
+    custom_feeds: []
+
+ui:
+  theme: dark
+  notifications: true
+  show_agent_details: true
+  confirm_before_action: true
+  minimize_to_tray: true
+  
+performance:
+  max_memory_mb: 512
+  max_cpu_percent: 50
+  scan_priority: normal  # low, normal, high
+  background_scan_delay_seconds: 300
