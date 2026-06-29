@@ -2,6 +2,6 @@
 Monitor agents module
 """
 
-# Placeholder for monitor agents
+from .file_monitor import FileSystemMonitor
 
-__all__ = []
+__all__ = ["FileSystemMonitor"]
