@@ -2,6 +2,6 @@
 Analysis agents module
 """
 
-from .registry_scanner import RegistryScanner
+from .virustotal_client import VirusTotalClient
 
-__all__ = ["RegistryScanner"]
+__all__ = ["VirusTotalClient"]

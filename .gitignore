@@ -58,3 +58,5 @@ desktop.ini
 ui/node_modules/
 ui/dist/
 ui/out/
+data/.whitelist_key
+data/.keysalt

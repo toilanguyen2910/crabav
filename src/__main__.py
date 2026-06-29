@@ -16,7 +16,7 @@ from .engine import ActionExecutor
 from .agents.scanner import FileScanner
 from .agents.monitor import FileSystemMonitor
 from .agents import AgentConfig
-from .utils import setup_logger, get_logger
+from .utils import setup_logger, get_logger, validate_scan_path
 
 logger = get_logger("main")
 
@@ -212,8 +212,13 @@ async def main():
         # Example: Run a quick scan
         if len(sys.argv) > 1:
             target = sys.argv[1]
-            result = await app.scan(target, "quick")
-            print(f"\nScan complete: {result}")
+            try:
+                validated = validate_scan_path(target)
+                result = await app.scan(str(validated), "quick")
+                print(f"\nScan complete: {result}")
+            except ValueError as e:
+                print(f"\nError: Invalid scan target — {e}")
+                sys.exit(1)
         else:
             # Interactive mode
             print("\nCrabAV is running. Press Ctrl+C to stop.")

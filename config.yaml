@@ -107,6 +107,13 @@ ui:
   show_agent_details: true
   confirm_before_action: true
   minimize_to_tray: true
+
+virustotal:
+  # Get your free API key at: https://www.virustotal.com/gui/my-apikey
+  api_key: "YOUR_API_KEY_HERE"
+  enabled: false  # Set to true after configuring your API key
+  min_confidence_for_lookup: 0.5  # Only query VT when confidence is below this
+  lookup_timeout_seconds: 10
   
 performance:
   max_memory_mb: 512

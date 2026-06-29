@@ -14,7 +14,8 @@ def setup_logger(
     format: str = "[{time:YYYY-MM-DD HH:mm:ss}] {level} | {message}",
     rotation: str = "10 MB",
     retention: str = "30 days",
-    colorize: bool = True
+    colorize: bool = True,
+    diagnose: bool = False  # Disabled by default — enable only for debugging
 ) -> None:
     """Configure logging for the application"""
     
@@ -28,7 +29,7 @@ def setup_logger(
         format=format,
         colorize=colorize,
         backtrace=True,
-        diagnose=True
+        diagnose=diagnose
     )
     
     # Add file handler if specified
@@ -43,7 +44,7 @@ def setup_logger(
             rotation=rotation,
             retention=retention,
             backtrace=True,
-            diagnose=True
+            diagnose=diagnose
         )
 
 

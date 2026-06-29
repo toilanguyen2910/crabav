@@ -9,7 +9,9 @@ from .helpers import (
     load_json_file,
     save_json_file,
     format_bytes,
-    sanitize_path
+    sanitize_path,
+    validate_scan_path,
+    validate_subprocess_arg,
 )
 
 __all__ = [
@@ -21,4 +23,6 @@ __all__ = [
     "save_json_file",
     "format_bytes",
     "sanitize_path",
+    "validate_scan_path",
+    "validate_subprocess_arg",
 ]
