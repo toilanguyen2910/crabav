@@ -2,6 +2,6 @@
 Analysis agents module
 """
 
-# Placeholder for analysis agents
+from .registry_scanner import RegistryScanner
 
-__all__ = []
+__all__ = ["RegistryScanner"]
