@@ -74,8 +74,7 @@ def test_quarantine_manager_performance(tmp_path):
     from src.quarantine import QuarantineManager
     
     manager = QuarantineManager(
-        quarantine_dir=str(tmp_path / "quarantine"),
-        backup_dir=str(tmp_path / "backup")
+        quarantine_dir=str(tmp_path / "quarantine")
     )
     
     # Create 10 test files

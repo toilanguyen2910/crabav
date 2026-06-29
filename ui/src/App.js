@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import {
   Box,
@@ -32,6 +32,7 @@ import Scans from './pages/Scans';
 import Settings from './pages/Settings';
 import StatusBar from './components/StatusBar';
 import Header from './components/Header';
+import api from './api';
 
 function App() {
   const theme = useTheme();
@@ -41,59 +42,48 @@ function App() {
   const [scanInProgress, setScanInProgress] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
   const [pendingThreats, setPendingThreats] = useState(0);
+  const [agentsActive, setAgentsActive] = useState(0);
 
-  useEffect(() => {
-    // Load initial data
-    loadSystemStatus();
-    loadPendingThreats();
-    
-    // Setup IPC listeners
-    if (window.electronAPI) {
-      window.electronAPI.onScanProgress((data) => {
-        setScanProgress(data.progress);
-      });
-      
-      window.electronAPI.onThreatDetected((data) => {
-        setPendingThreats(prev => prev + 1);
-      });
-      
-      window.electronAPI.onScanComplete(() => {
-        setScanInProgress(false);
-        setScanProgress(0);
-      });
-    }
-    
-    return () => {
-      if (window.electronAPI) {
-        window.electronAPI.removeAllListeners('scan-progress');
-        window.electronAPI.removeAllListeners('threat-detected');
-        window.electronAPI.removeAllListeners('scan-complete');
-      }
-    };
-  }, []);
-
-  const loadSystemStatus = async () => {
+  // ── Poll system status ──
+  const loadSystemStatus = useCallback(async () => {
     try {
-      if (window.electronAPI) {
-        const status = await window.electronAPI.getSystemStatus();
-        setSystemStatus(status);
+      const status = await api.getSystemStatus();
+      setSystemStatus(status.status);
+      setPendingThreats(status.threats_pending || 0);
+      setAgentsActive(status.agents_active || 0);
+      if (status.scan_running) {
+        setScanInProgress(true);
+        setScanProgress(status.progress || 0);
       }
     } catch (error) {
       console.error('Failed to load system status:', error);
+      setSystemStatus('error');
     }
-  };
+  }, []);
 
-  const loadPendingThreats = async () => {
-    try {
-      if (window.electronAPI) {
-        const threats = await window.electronAPI.getThreats();
-        const pending = threats.filter(t => t.status === 'pending').length;
-        setPendingThreats(pending);
-      }
-    } catch (error) {
-      console.error('Failed to load threats:', error);
-    }
-  };
+  useEffect(() => {
+    loadSystemStatus();
+    const interval = setInterval(loadSystemStatus, 3000);
+    return () => clearInterval(interval);
+  }, [loadSystemStatus]);
+
+  // ── Scan progress polling ──
+  useEffect(() => {
+    if (!scanInProgress) return;
+    const poll = setInterval(async () => {
+      try {
+        const s = await api.getScanStatus();
+        if (s.status === 'running') {
+          setScanProgress(s.progress || 0);
+        } else {
+          setScanInProgress(false);
+          setScanProgress(0);
+          loadSystemStatus(); // refresh stats
+        }
+      } catch (e) { /* ignore */ }
+    }, 2000);
+    return () => clearInterval(poll);
+  }, [scanInProgress, loadSystemStatus]);
 
   const handleDrawerToggle = () => {
     setDrawerOpen(!drawerOpen);
@@ -101,23 +91,23 @@ function App() {
 
   const startScan = async (scanType) => {
     try {
-      if (window.electronAPI) {
-        setScanInProgress(true);
-        const result = await window.electronAPI.startScan(scanType);
-        if (result.success) {
-          // Scan started successfully
-        }
+      setScanInProgress(true);
+      setScanProgress(0);
+      const result = await api.startScan(scanType);
+      if (result.success) {
+        console.log('Scan started:', result.scan_id);
       }
     } catch (error) {
       console.error('Failed to start scan:', error);
       setScanInProgress(false);
+      alert('Failed to start scan. Is the backend running?\n\nStart it with: python -m src.api_server');
     }
   };
 
   const drawerWidth = 240;
 
   return (
-    <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+    <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#0a0a14' }}>
       <CssBaseline />
       
       {/* App Bar */}
@@ -125,24 +115,27 @@ function App() {
         position="fixed"
         sx={{
           zIndex: theme.zIndex.drawer + 1,
-          backgroundColor: '#1a1a1a',
-          borderBottom: `1px solid ${theme.palette.divider}`,
+          background: 'linear-gradient(90deg, #0d0d1a 0%, #141428 100%)',
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          backdropFilter: 'blur(20px)',
         }}
       >
         <Toolbar>
-          <IconButton
-            color="inherit"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2 }}
-          >
+          <IconButton color="inherit" edge="start" onClick={handleDrawerToggle} sx={{ mr: 2 }}>
             <MenuIcon />
           </IconButton>
-          
-          <ShieldIcon sx={{ mr: 2, color: theme.palette.primary.main }} />
-          
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            CrabAV - Free Antivirus
+          <Box sx={{
+            p: 0.8, borderRadius: 1.5, mr: 2,
+            background: 'linear-gradient(135deg, #ff6b35, #ff8c42)',
+            display: 'flex', alignItems: 'center',
+          }}>
+            <ShieldIcon sx={{ color: '#fff', fontSize: 22 }} />
+          </Box>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 700, letterSpacing: 0.5 }}>
+            CrabAV
+            <Box component="span" sx={{ color: 'rgba(255,255,255,0.3)', fontWeight: 400, ml: 1, fontSize: '0.8rem' }}>
+              Free Antivirus
+            </Box>
           </Typography>
           
           {pendingThreats > 0 && (
@@ -183,15 +176,16 @@ function App() {
         sx={{
           flexGrow: 1,
           p: 3,
-          width: `calc(100% - ${drawerOpen ? drawerWidth : 0}px)`,
+          width: { md: `calc(100% - ${drawerOpen ? drawerWidth : 0}px)` },
+          ml: { md: drawerOpen ? 0 : `-${drawerWidth}px` },
           transition: theme.transitions.create(['width', 'margin'], {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.leavingScreen,
           }),
-          marginLeft: drawerOpen ? 0 : `-${drawerWidth}px`,
           height: '100vh',
           overflow: 'auto',
-          pt: '64px', // AppBar height
+          pt: '64px',
+          pb: '68px',
         }}
       >
         <Header systemStatus={systemStatus} onStartScan={startScan} />
@@ -206,7 +200,7 @@ function App() {
       </Box>
       
       {/* Status Bar */}
-      <StatusBar systemStatus={systemStatus} />
+      <StatusBar systemStatus={systemStatus} agentsActive={agentsActive} />
     </Box>
   );
 }

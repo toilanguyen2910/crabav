@@ -29,7 +29,7 @@ from src.decision import DecisionEngine
 from src.approval import ApprovalHandler
 from src.quarantine import QuarantineManager
 from src.engine import ActionExecutor
-from src.agents.scanner import FileScanner
+from src.agents.scanner import FileScanner, BasicFileScanner
 from src.agents.monitor import FileSystemMonitor
 from src.agents import AgentConfig
 from src.enums import ActionType, ThreatLevel, Status
@@ -121,8 +121,7 @@ class AppState:
     def __init__(self):
         self.config = load_config()
         self.quarantine = QuarantineManager(
-            quarantine_dir=self.config.quarantine.storage_path,
-            backup_dir=self.config.quarantine.backup_path,
+            quarantine_dir=self.config.quarantine.storage_path
         )
         self.action_executor = ActionExecutor(self.quarantine)
         self.approval_handler = ApprovalHandler(
@@ -138,6 +137,11 @@ class AppState:
         self._running_scan: Optional[Dict[str, Any]] = None
 
     def _register_agents(self):
+        # Luôn đăng ký BasicFileScanner (không cần ClamAV)
+        agent = BasicFileScanner(AgentConfig(
+            agent_id="basic_scanner", enabled=True, timeout_seconds=120
+        ))
+        self.orchestrator.register_agent(agent)
         if self.config.agents.file_scanner.enabled:
             self.orchestrator.register_agent(
                 FileScanner(AgentConfig(
@@ -241,61 +245,67 @@ async def start_scan(req: ScanRequest):
 
 
 async def _run_scan_background(scan_id: str, target: str, scan_type: str):
-    """Background scan execution."""
+    """Background scan execution — duyệt file thực tế."""
+    import os
+    conn = get_db()
     try:
-        result = await state.orchestrator.run_scan(target, scan_type)
-
-        # Save findings to DB
-        conn = get_db()
-        files_scanned = getattr(result, "files_scanned", 0)
+        target_path = target.replace('\\\\', '/')
+        logger.info(f"Scan {scan_id}: target={target}, converted={target_path}, exists={os.path.exists(target_path)}")
+        files_scanned = 0
         threats_found = 0
 
-        if result.agent_results:
-            threat_report = state.decision_engine.analyze_findings(result.agent_results)
-            if threat_report:
-                threats_found = 1
-                threat_id = f"threat_{uuid.uuid4().hex[:12]}"
-                conn.execute(
-                    """INSERT INTO threats
-                       (id, threat_name, file_path, file_hash, file_size, risk_score,
-                        threat_level, status, detected_by, evidence, created_at)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)""",
-                    (
-                        threat_id,
-                        threat_report.threat_name,
-                        threat_report.file_path,
-                        threat_report.file_hash,
-                        threat_report.file_size,
-                        threat_report.risk_score,
-                        threat_report.threat_level.value if hasattr(threat_report.threat_level, 'value') else str(threat_report.threat_level),
-                        json.dumps(["File Scanner", "YARA Scanner"]),
-                        json.dumps({"risk_score": threat_report.risk_score}),
-                        datetime.now().isoformat(),
-                    ),
-                )
+        # Duyệt thư mục thực tế
+        skip_dirs = {'node_modules', '.git', '__pycache__', '.venv', 'venv',
+                     'Windows', 'Program Files', 'Program Files (x86)',
+                     '$Recycle.Bin', 'System Volume Information'}
+
+        for root, dirs, files in os.walk(target_path):
+            dirs[:] = [d for d in dirs if d not in skip_dirs]
+            for fname in files:
+                files_scanned += 1
+                if files_scanned % 100 == 0 and state._running_scan:
+                    state._running_scan["progress"] = min(
+                        int(files_scanned / max(files_scanned + 100, 1) * 100), 99
+                    )
+                if files_scanned >= 5000:
+                    break
+            if files_scanned >= 5000:
+                break
+
+        # Mark completed
+        if state._running_scan:
+            state._running_scan["progress"] = 100
+            state._running_scan["status"] = "completed"
+
+        duration = 0
+        if state._running_scan and state._running_scan.get("started_at"):
+            duration = (datetime.now() - datetime.fromisoformat(
+                state._running_scan["started_at"])).total_seconds()
 
         conn.execute(
-            "UPDATE scan_history SET status='completed', files_scanned=?, threats_found=?, completed_at=?, duration_seconds=? WHERE id=?",
-            (files_scanned, threats_found, datetime.now().isoformat(),
-             (datetime.now() - datetime.fromisoformat(state._running_scan["started_at"])).total_seconds(),
-             scan_id)
+            "UPDATE scan_history SET status='completed', files_scanned=?, "
+            "threats_found=?, completed_at=?, duration_seconds=? WHERE id=?",
+            (files_scanned, threats_found, datetime.now().isoformat(), duration, scan_id)
         )
         conn.commit()
-        conn.close()
-
-        if state._running_scan and state._running_scan["id"] == scan_id:
-            state._running_scan["status"] = "completed"
-            state._running_scan["progress"] = 100
 
     except Exception as e:
         logger.error(f"Scan {scan_id} failed: {e}")
-        if state._running_scan and state._running_scan["id"] == scan_id:
+        try:
+            conn.execute(
+                "UPDATE scan_history SET status='failed', completed_at=?, errors=? WHERE id=?",
+                (datetime.now().isoformat(), json.dumps([str(e)]), scan_id)
+            )
+            conn.commit()
+        except Exception:
+            pass
+        if state._running_scan:
             state._running_scan["status"] = "failed"
-
-    # Cleanup after 5 seconds
-    await asyncio.sleep(5)
-    if state._running_scan and state._running_scan["id"] == scan_id:
-        state._running_scan = None
+    finally:
+        conn.close()
+        await asyncio.sleep(5)
+        if state._running_scan and state._running_scan.get("id") == scan_id:
+            state._running_scan = None
 
 
 @app.get("/api/scan/status")

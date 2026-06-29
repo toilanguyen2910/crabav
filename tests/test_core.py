@@ -75,8 +75,7 @@ def test_quarantine_manager(tmp_path):
     backup_dir = tmp_path / "backup"
 
     manager = QuarantineManager(
-        quarantine_dir=str(quar_dir),
-        backup_dir=str(backup_dir)
+        quarantine_dir=str(quar_dir)
     )
 
     test_file = tmp_path / "test.txt"
@@ -91,7 +90,6 @@ def test_quarantine_manager(tmp_path):
     assert record is not None
     assert not test_file.exists()  # Original removed
     assert Path(record.quarantined_path).exists()
-    assert Path(record.backup_path).exists()
 
 
 # ── Quarantine: AES-256-GCM encryption ─────────────────────────
@@ -107,8 +105,7 @@ def test_quarantine_file_is_encrypted(tmp_path):
     backup_dir = tmp_path / "backup"
 
     manager = QuarantineManager(
-        quarantine_dir=str(quar_dir),
-        backup_dir=str(backup_dir)
+        quarantine_dir=str(quar_dir)
     )
 
     original_content = b"TOP SECRET: password=12345"
@@ -131,19 +128,6 @@ def test_quarantine_file_is_encrypted(tmp_path):
         "QUARANTINE FILE IS NOT ENCRYPTED — plaintext found in .quar!"
     )
 
-    # The backup MUST still be plaintext (for disaster recovery)
-    backup_path = Path(record.backup_path)
-    assert backup_path.exists()
-    backup_data = backup_path.read_bytes()
-    assert original_content in backup_data, (
-        "Backup should preserve original plaintext"
-    )
-
-    # Quarantine file must differ from backup
-    assert quar_data != backup_data, (
-        "Quarantine file content equals backup — encryption is a no-op!"
-    )
-
 
 def test_quarantine_encrypt_decrypt_roundtrip(tmp_path):
     """
@@ -155,8 +139,7 @@ def test_quarantine_encrypt_decrypt_roundtrip(tmp_path):
     backup_dir = tmp_path / "backup"
 
     manager = QuarantineManager(
-        quarantine_dir=str(quar_dir),
-        backup_dir=str(backup_dir)
+        quarantine_dir=str(quar_dir)
     )
 
     # Use binary data to verify no corruption
@@ -190,12 +173,9 @@ def test_quarantine_encrypt_decrypt_roundtrip(tmp_path):
         f"original={len(original_content)}B, restored={len(restored_content)}B"
     )
 
-    # Quarantine + backup files should be cleaned up after restore
+    # Quarantine files should be cleaned up after restore
     assert not Path(record.quarantined_path).exists(), (
         "Quarantine file not cleaned up after restore"
-    )
-    assert not Path(record.backup_path).exists(), (
-        "Backup file not cleaned up after restore"
     )
 
 
@@ -215,8 +195,7 @@ def test_quarantine_deterministic_content(tmp_path):
     records = []
     for i in range(2):
         manager = QuarantineManager(
-            quarantine_dir=str(quar_dir),
-            backup_dir=str(backup_dir)
+            quarantine_dir=str(quar_dir)
         )
         f = tmp_path / f"same_{i}.txt"
         f.write_bytes(original_content)

@@ -42,14 +42,11 @@ class QuarantineManager:
 
     def __init__(
         self,
-        quarantine_dir: str = "./data/quarantine",
-        backup_dir: str = "./data/backups"
+        quarantine_dir: str = "./data/quarantine"
     ):
         self.quarantine_dir = Path(quarantine_dir)
-        self.backup_dir = Path(backup_dir)
 
         ensure_directory(str(self.quarantine_dir))
-        ensure_directory(str(self.backup_dir))
 
         # Derive a stable encryption key from a machine-local secret.
         # In production, this should be injected from a secure keystore.
@@ -57,7 +54,7 @@ class QuarantineManager:
 
         logger.info(
             f"QuarantineManager initialized: "
-            f"quarantine={quarantine_dir}, backup={backup_dir}"
+            f"quarantine={quarantine_dir}"
         )
 
     # ──────────────────────── key management ────────────────────────
@@ -190,15 +187,11 @@ class QuarantineManager:
             file_hash = calculate_file_hash(str(source_path))
             file_size = source_path.stat().st_size
 
-            # Create plaintext backup (encrypted at rest is handled below)
-            backup_path = self.backup_dir / f"{quarantine_id}.bak"
-            shutil.copy2(source_path, backup_path)
-
             # Encrypt → quarantine storage
             quarantine_path = self.quarantine_dir / f"{quarantine_id}.quar"
             self._encrypt_file(source_path, quarantine_path, self._encryption_key)
 
-            # Remove original only AFTER successful encryption + backup
+            # Remove original only AFTER successful encryption
             source_path.unlink()
 
             # Create record
@@ -207,7 +200,7 @@ class QuarantineManager:
                 threat_id=threat_id,
                 original_path=str(source_path),
                 quarantined_path=str(quarantine_path),
-                backup_path=str(backup_path),
+                backup_path=None,
                 file_hash=file_hash,
                 file_size=file_size,
                 reason=reason,
@@ -242,16 +235,9 @@ class QuarantineManager:
         """
         try:
             quarantine_path = self.quarantine_dir / f"{quarantine_id}.quar"
-            backup_path = self.backup_dir / f"{quarantine_id}.bak"
 
-            # Prefer quarantine file; fall back to backup
-            encrypted_source = (
-                quarantine_path if quarantine_path.exists() else None
-            )
-            plaintext_backup = backup_path if backup_path.exists() else None
-
-            if encrypted_source is None and plaintext_backup is None:
-                logger.error(f"Quarantined/backup file not found: {quarantine_id}")
+            if not quarantine_path.exists():
+                logger.error(f"Quarantined file not found: {quarantine_id}")
                 return False
 
             if not original_path:
@@ -282,19 +268,14 @@ class QuarantineManager:
             dest_path = Path(original_path)
             dest_path.parent.mkdir(parents=True, exist_ok=True)
 
-            if encrypted_source is not None:
-                # Decrypt from quarantine
-                self._decrypt_file(
-                    encrypted_source, dest_path, self._encryption_key
-                )
-            else:
-                # Fallback: plaintext backup
-                shutil.copy2(plaintext_backup, dest_path)
+            # Decrypt from quarantine
+            self._decrypt_file(
+                quarantine_path, dest_path, self._encryption_key
+            )
 
             # Clean up
-            for p in (quarantine_path, backup_path):
-                if p is not None and p.exists():
-                    p.unlink()
+            if quarantine_path.exists():
+                quarantine_path.unlink()
 
             logger.info(
                 f"Restored from quarantine: {quarantine_id} → {original_path}"
@@ -317,12 +298,10 @@ class QuarantineManager:
         """
         try:
             quarantine_path = self.quarantine_dir / f"{quarantine_id}.quar"
-            backup_path = self.backup_dir / f"{quarantine_id}.bak"
 
             if quarantine_path.exists():
                 quarantine_path.unlink()
 
-            # Keep backup for disaster recovery (configurable via cleanup_expired)
             logger.info(f"Deleted quarantined file: {quarantine_id}")
             return True
 

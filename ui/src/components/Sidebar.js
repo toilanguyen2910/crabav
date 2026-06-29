@@ -1,23 +1,14 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  Drawer,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Box,
-  Divider,
-  Typography,
-  Chip,
+  Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText,
+  Box, Divider, Typography, Chip,
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
   BugReport as ThreatsIcon,
   Search as ScansIcon,
   Settings as SettingsIcon,
-  Info as AboutIcon,
   Shield as ShieldIcon,
 } from '@mui/icons-material';
 
@@ -34,77 +25,69 @@ function Sidebar({ drawerWidth, drawerOpen, isMobile, pendingThreats, onDrawerTo
 
   const handleNavigation = (path) => {
     navigate(path);
-    if (isMobile) {
-      onDrawerToggle();
-    }
+    if (isMobile) onDrawerToggle();
   };
 
   const drawerContent = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* Logo Section */}
-      <Box
-        sx={{
-          p: 3,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 2,
-        }}
-      >
-        <ShieldIcon sx={{ fontSize: 40, color: 'primary.main' }} />
+      <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Box sx={{
+          p: 1.2, borderRadius: 2,
+          background: 'linear-gradient(135deg, #ff6b35, #ff8c42)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <ShieldIcon sx={{ fontSize: 28, color: '#fff' }} />
+        </Box>
         <Box>
-          <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+          <Typography variant="h6" sx={{ fontWeight: 800, color: '#fff', letterSpacing: 1 }}>
             CrabAV
           </Typography>
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>
             v0.1.0
           </Typography>
         </Box>
       </Box>
 
-      <Divider />
+      <Divider sx={{ borderColor: 'rgba(255,255,255,0.06)' }} />
 
-      {/* Navigation Menu */}
       <List sx={{ px: 2, pt: 2 }}>
         {menuItems.map((item) => {
           const isActive = location.pathname === item.path;
           const showBadge = item.text === 'Threats' && pendingThreats > 0;
 
           return (
-            <ListItem key={item.text} disablePadding sx={{ mb: 1 }}>
+            <ListItem key={item.text} disablePadding sx={{ mb: 0.8 }}>
               <ListItemButton
                 onClick={() => handleNavigation(item.path)}
                 sx={{
-                  borderRadius: 2,
-                  backgroundColor: isActive ? 'primary.main' : 'transparent',
-                  color: isActive ? 'white' : 'text.primary',
+                  borderRadius: 2.5, py: 1.3,
+                  background: isActive ? 'linear-gradient(135deg, rgba(0,212,255,0.2), rgba(0,150,255,0.1))' : 'transparent',
+                  border: isActive ? '1px solid rgba(0,212,255,0.25)' : '1px solid transparent',
+                  transition: 'all 0.2s ease',
                   '&:hover': {
-                    backgroundColor: isActive
-                      ? 'primary.dark'
-                      : 'action.hover',
+                    background: isActive
+                      ? 'linear-gradient(135deg, rgba(0,212,255,0.25), rgba(0,150,255,0.15))'
+                      : 'rgba(255,255,255,0.04)',
                   },
                 }}
               >
-                <ListItemIcon
-                  sx={{
-                    color: isActive ? 'white' : 'primary.main',
-                    minWidth: 40,
-                  }}
-                >
+                <ListItemIcon sx={{
+                  minWidth: 40,
+                  color: isActive ? '#00d4ff' : 'rgba(255,255,255,0.4)',
+                }}>
                   {item.icon}
                 </ListItemIcon>
                 <ListItemText
                   primary={item.text}
                   primaryTypographyProps={{
-                    fontWeight: isActive ? 'bold' : 'normal',
+                    fontWeight: isActive ? 700 : 500,
+                    fontSize: '0.95rem',
+                    color: isActive ? '#fff' : 'rgba(255,255,255,0.6)',
                   }}
                 />
                 {showBadge && (
-                  <Chip
-                    label={pendingThreats}
-                    color="warning"
-                    size="small"
-                    sx={{ ml: 1 }}
-                  />
+                  <Chip label={pendingThreats} color="warning" size="small"
+                    sx={{ fontWeight: 700, borderRadius: 1.5 }} />
                 )}
               </ListItemButton>
             </ListItem>
@@ -114,11 +97,10 @@ function Sidebar({ drawerWidth, drawerOpen, isMobile, pendingThreats, onDrawerTo
 
       <Box sx={{ flexGrow: 1 }} />
 
-      {/* Footer */}
-      <Divider />
-      <Box sx={{ p: 2 }}>
-        <Typography variant="caption" color="text.secondary">
-          🦀 Made with care by Súp Cua AI
+      <Divider sx={{ borderColor: 'rgba(255,255,255,0.06)' }} />
+      <Box sx={{ p: 2.5 }}>
+        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.25)', fontStyle: 'italic' }}>
+          🦀 Powered by Súp Cua AI
         </Typography>
       </Box>
     </Box>
@@ -130,19 +112,14 @@ function Sidebar({ drawerWidth, drawerOpen, isMobile, pendingThreats, onDrawerTo
       open={drawerOpen}
       onClose={onDrawerToggle}
       sx={{
-        width: drawerWidth,
-        flexShrink: 0,
+        width: drawerWidth, flexShrink: 0,
         '& .MuiDrawer-paper': {
-          width: drawerWidth,
-          boxSizing: 'border-box',
-          backgroundColor: '#1e1e1e',
-          borderRight: '1px solid',
-          borderColor: 'divider',
+          width: drawerWidth, boxSizing: 'border-box',
+          background: 'linear-gradient(180deg, #0d0d1a 0%, #12122a 100%)',
+          borderRight: '1px solid rgba(255,255,255,0.06)',
         },
       }}
-      ModalProps={{
-        keepMounted: true, // Better open performance on mobile
-      }}
+      ModalProps={{ keepMounted: true }}
     >
       {drawerContent}
     </Drawer>

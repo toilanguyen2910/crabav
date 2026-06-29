@@ -51,8 +51,7 @@ class CrabAVApp:
         
         # Initialize components
         self.quarantine = QuarantineManager(
-            quarantine_dir=self.config.quarantine.storage_path,
-            backup_dir=self.config.quarantine.backup_path
+            quarantine_dir=self.config.quarantine.storage_path
         )
         
         self.action_executor = ActionExecutor(self.quarantine)
