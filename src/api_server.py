@@ -245,47 +245,69 @@ async def start_scan(req: ScanRequest):
 
 
 async def _run_scan_background(scan_id: str, target: str, scan_type: str):
-    """Background scan execution — duyệt file thực tế."""
-    import os
+    """Background scan execution using Orchestrator."""
+    from src.enums import ScanType
     conn = get_db()
     try:
         target_path = target.replace('\\\\', '/')
-        logger.info(f"Scan {scan_id}: target={target}, converted={target_path}, exists={os.path.exists(target_path)}")
-        files_scanned = 0
-        threats_found = 0
+        logger.info(f"Scan {scan_id}: target={target_path}")
 
-        # Duyệt thư mục thực tế
-        skip_dirs = {'node_modules', '.git', '__pycache__', '.venv', 'venv',
-                     'Windows', 'Program Files', 'Program Files (x86)',
-                     '$Recycle.Bin', 'System Volume Information'}
+        try:
+            stype = ScanType(scan_type.lower())
+        except ValueError:
+            stype = ScanType.QUICK
 
-        for root, dirs, files in os.walk(target_path):
-            dirs[:] = [d for d in dirs if d not in skip_dirs]
-            for fname in files:
-                files_scanned += 1
-                if files_scanned % 100 == 0 and state._running_scan:
-                    state._running_scan["progress"] = min(
-                        int(files_scanned / max(files_scanned + 100, 1) * 100), 99
-                    )
-                if files_scanned >= 5000:
-                    break
-            if files_scanned >= 5000:
-                break
+        # Run real scan using orchestrator
+        scan_result = await state.orchestrator.run_scan(stype, target_path)
 
-        # Mark completed
         if state._running_scan:
             state._running_scan["progress"] = 100
-            state._running_scan["status"] = "completed"
+            state._running_scan["status"] = scan_result.status.value
 
-        duration = 0
-        if state._running_scan and state._running_scan.get("started_at"):
-            duration = (datetime.now() - datetime.fromisoformat(
-                state._running_scan["started_at"])).total_seconds()
+        # Analyze findings
+        threats_found = scan_result.threats_found
+        files_scanned = scan_result.files_scanned
+        
+        if scan_result.agent_results:
+            threat_report = state.decision_engine.analyze_findings(scan_result.agent_results)
+            if threat_report:
+                # Determine severity name
+                tl = threat_report.threat_level
+                tl_name = tl.name if hasattr(tl, 'name') else str(tl)
+                
+                detected_by = list(set(f.agent_id for f in threat_report.findings))
+                
+                # Insert threat to DB
+                conn.execute(
+                    "INSERT INTO threats (id, threat_name, file_path, file_hash, file_size, risk_score, threat_level, detected_by, created_at) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (
+                        threat_report.threat_id,
+                        threat_report.threat_name,
+                        threat_report.file_path,
+                        threat_report.file_hash,
+                        threat_report.file_size,
+                        threat_report.risk_score,
+                        tl_name,
+                        json.dumps(detected_by),
+                        datetime.now().isoformat()
+                    )
+                )
+                threats_found = max(threats_found, 1)
 
+        duration = scan_result.duration_seconds
+        
         conn.execute(
-            "UPDATE scan_history SET status='completed', files_scanned=?, "
+            "UPDATE scan_history SET status=?, files_scanned=?, "
             "threats_found=?, completed_at=?, duration_seconds=? WHERE id=?",
-            (files_scanned, threats_found, datetime.now().isoformat(), duration, scan_id)
+            (
+                scan_result.status.value,
+                files_scanned,
+                threats_found,
+                datetime.now().isoformat(),
+                duration,
+                scan_id
+            )
         )
         conn.commit()
 
